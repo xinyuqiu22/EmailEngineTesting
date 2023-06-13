@@ -73,7 +73,6 @@ namespace EmailEngineTesting
 
             using (IDbConnection EmailDrop = new SqlConnection(connectionString))
             {
-                IEnumerable<EngineSettings> temp = EmailDrop.QuerySql<EngineSettings>("EXEC TEST_EmailBatchRecipients_Get @EmailServiceProvider_ID", new { EmailServiceProvider_ID }).ToList();
                 CurrentEmailBatchID = EmailDrop.QuerySql<int>(
                     "EXEC WeeklyEmailBatches_GetNext @DropDate, @Realtime, @EmailServiceProvider_ID, @Processor_ID",
                     new { DropDate, Realtime, EmailServiceProvider_ID, Processor_ID = 1 }).Single();
