@@ -96,7 +96,7 @@ namespace EmailEngineTesting
                     if (ES.Count() > 0 && CurrentEmailBatchID > 0)
                     {
                         int MinutesLeftInWeekAtStart = ES.FirstOrDefault().MinutesLeftInWeek;
-                        if (WeekCount > 0) SendIntervalSeconds = (MinutesLeftInWeekAtStart / (WeekCount / ES.Count())) * 60;
+                        if (WeekCount > 0) SendIntervalSeconds = (MinutesLeftInWeekAtStart / ((decimal)WeekCount / ES.Count())) * 60;
                         if (SendIntervalSeconds > 21600) SendIntervalSeconds = 21600;
                         if (Realtime) SendIntervalSeconds = 2;
 
