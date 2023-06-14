@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using System;
+using System.Linq;
 using System.Configuration;
 using System.Collections.Generic;
 using System.Data;
@@ -92,7 +93,20 @@ namespace EmailEngineTesting
                         "EXEC WeeklyEmailEngineSettings_Get @EmailServiceProvider_ID",
                         new { EmailServiceProvider_ID }).ToList();
 
+                    if (ES.Count() > 0 && CurrentEmailBatchID > 0)
+                    {
+                        int MinutesLeftInWeekAtStart = ES.FirstOrDefault().MinutesLeftInWeek;
+                        if (WeekCount > 0) SendIntervalSeconds = (MinutesLeftInWeekAtStart / (WeekCount / ES.Count())) * 60;
+                        if (SendIntervalSeconds > 21600) SendIntervalSeconds = 21600;
+                        if (Realtime) SendIntervalSeconds = 2;
 
+                        Console.WriteLine("Send Interval in Seconds: " + ((int)SendIntervalSeconds).ToString());
+                        Console.WriteLine("Email Servers: " + ES.Count().ToString());
+                        Console.WriteLine("Week Count: " + WeekCount.ToString());
+                        Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+                        Console.WriteLine("Batch: " + CurrentEmailBatchID.ToString());
+                        Console.WriteLine("Drop Count: " + TheDrop.Count.ToString());
+                    }
                 }
 
             }
