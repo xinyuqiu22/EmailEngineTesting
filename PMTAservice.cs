@@ -66,7 +66,7 @@ namespace EmailEngineTesting
             IEnumerable<EngineSettings> ES;
             int SendCycle = 0;
             int DropIndex = 0;
-            decimal WeekCount = 0;
+            int WeekCount = 0;
             int CurrentEmailBatchID = 0;
             decimal SendIntervalSeconds = 600;
             DateTime AppStartTimestamp = DateTime.Now;
@@ -78,9 +78,9 @@ namespace EmailEngineTesting
                     "EXEC WeeklyEmailBatches_GetNext @DropDate, @Realtime, @EmailServiceProvider_ID, @Processor_ID",
                     new { DropDate, Realtime, EmailServiceProvider_ID, Processor_ID = 1 }).Single();
 
-                WeekCount = Convert.ToDecimal(EmailDrop.QuerySql<int>(
+                WeekCount = EmailDrop.QuerySql<int>(
                     "EXEC WeeklyEmailBatchRecipients_GetCountV2 @EmailServiceProvider_ID, @Realtime",
-                    new { EmailServiceProvider_ID, Realtime }).Single());
+                    new { EmailServiceProvider_ID, Realtime }).Single();
 
 
                 List<RecipientModel> TheDrop = EmailDrop.QuerySql<RecipientModel>(
