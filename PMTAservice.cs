@@ -62,7 +62,7 @@ namespace EmailEngineTesting
 
         public static void sendPMTA(int EmailServiceProvider_ID, DateTime DropDate, bool Realtime)
         {
-            List<EngineSettings> ES;
+            IEnumerable<EngineSettings> ES;
             int SendCycle = 0;
             int DropIndex = 0;
             decimal WeekCount = 0;
@@ -85,6 +85,15 @@ namespace EmailEngineTesting
                 List<RecipientModel> TheDrop = EmailDrop.QuerySql<RecipientModel>(
                     "EXEC WeeklyEmailBatchRecipients_GetV3 @EmailServiceProvider_ID, @EmailBatch_ID, @Realtime",
                     new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID, Realtime }).ToList();
+
+                using (IDbConnection EmailEngineSettings = new SqlConnection(connectionString))
+                {
+                    ES = EmailEngineSettings.QuerySql<EngineSettings>(
+                        "EXEC WeeklyEmailEngineSettings_Get @EmailServiceProvider_ID",
+                        new { EmailServiceProvider_ID }).ToList();
+
+
+                }
 
             }
 
