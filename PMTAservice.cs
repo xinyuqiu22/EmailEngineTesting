@@ -3,9 +3,9 @@ using System;
 using System.Linq;
 using System.Configuration;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Data;
 using Insight.Database;
-using System.Web.Http;
 using EASendMail;
 
 namespace EmailEngineTesting
@@ -63,6 +63,7 @@ namespace EmailEngineTesting
 
         public static void sendPMTA(int EmailServiceProvider_ID, DateTime DropDate, bool Realtime)
         {
+            
             IEnumerable<EngineSettings> ES;
             int SendCycle = 0;
             int DropIndex = 0;
@@ -74,6 +75,8 @@ namespace EmailEngineTesting
 
             using (IDbConnection EmailDrop = new SqlConnection(connectionString))
             {
+
+
                 CurrentEmailBatchID = EmailDrop.QuerySql<int>(
                     "EXEC WeeklyEmailBatches_GetNext @DropDate, @Realtime, @EmailServiceProvider_ID, @Processor_ID",
                     new { DropDate, Realtime, EmailServiceProvider_ID, Processor_ID = 1 }).Single();
@@ -83,7 +86,7 @@ namespace EmailEngineTesting
                     new { EmailServiceProvider_ID, Realtime }).Single();
 
 
-                List<RecipientModel> TheDrop = EmailDrop.QuerySql<RecipientModel>(
+                IEnumerable<RecipientModel> TheDrop = EmailDrop.QuerySql<RecipientModel>(
                     "EXEC WeeklyEmailBatchRecipients_GetV3 @EmailServiceProvider_ID, @EmailBatch_ID, @Realtime",
                     new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID, Realtime }).ToList();
 
@@ -105,7 +108,36 @@ namespace EmailEngineTesting
                         Console.WriteLine("Week Count: " + WeekCount.ToString());
                         Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
                         Console.WriteLine("Batch: " + CurrentEmailBatchID.ToString());
-                        Console.WriteLine("Drop Count: " + TheDrop.Count.ToString());
+                        Console.WriteLine("Drop Count: " + TheDrop.Count().ToString());
+
+                        while(ES.Count() > 0 && CurrentEmailBatchID > 0)
+                        {
+                            DateTime StartTime = DateTime.Now;
+                            IEnumerable<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
+
+
+                            Parallel.ForEach(ES, EngineSetting =>
+                            {
+
+                                if (DropIndex >= TheDrop.Count())
+                                {
+                                    using (IDbConnection BatchStatus = new SqlConnection(connectionString)) 
+                                    {
+                                        Console.WriteLine("hi");
+                                        BatchStatus.ExecuteSql(
+                                            "EXEC WeeklyEmailBatchEnd_Save @EmailBatch_ID, @EmailServiceProvider_ID, @Processor_ID",
+                                            new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 1 });
+                                        
+                                        CurrentEmailBatchID = BatchStatus.QuerySql<int>(
+                                            "EXEC WeeklyEmailBatches_GetNext @DropDate, @Realtime, @EmailServiceProvider_ID, @Processor_ID",
+                                            new { DropDate, Realtime, EmailServiceProvider_ID, Processor_ID = 1 }).Single();
+
+                                        if (CurrentEmailBatchID == 0) return;
+                                    }
+                                }
+                                
+                            });
+                        }
                     }
                 }
 
