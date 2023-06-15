@@ -14,7 +14,8 @@ namespace EmailEngineTesting
         static void Main(string[] args)
         {
             int EmailServiceProvider_ID = 0;
-            PMTAservice.sendPMTA(EmailServiceProvider_ID, DateTime.Now, false);
+            DateTime Testtime = new DateTime(2023, 04, 20);
+            PMTAservice.sendPMTA(EmailServiceProvider_ID, Testtime, false);
         }
 
         
