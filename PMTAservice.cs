@@ -123,7 +123,6 @@ namespace EmailEngineTesting
                                 {
                                     using (IDbConnection BatchStatus = new SqlConnection(connectionString)) 
                                     {
-                                        Console.WriteLine("hi");
                                         BatchStatus.ExecuteSql(
                                             "EXEC WeeklyEmailBatchEnd_Save @EmailBatch_ID, @EmailServiceProvider_ID, @Processor_ID",
                                             new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 1 });
@@ -133,9 +132,26 @@ namespace EmailEngineTesting
                                             new { DropDate, Realtime, EmailServiceProvider_ID, Processor_ID = 1 }).Single();
 
                                         if (CurrentEmailBatchID == 0) return;
+
+                                        Console.WriteLine("Batch: " + CurrentEmailBatchID.ToString());
+                                        TheDrop = EmailDrop.QuerySql<RecipientModel>(
+                                            "EXEC WeeklyEmailBatchRecipients_GetV3 @EmailServiceProvider_ID, @EmailBatch_ID, @Realtime",
+                                            new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID, Realtime }).ToList();
+
+                                        Console.WriteLine("Drop Count: " + TheDrop.Count().ToString());
+
+                                        DropIndex = 0;
+                                        if (TheDrop.Count() == 0) return;
                                     }
                                 }
-                                
+                                RecipientModel recipient = TheDrop.ElementAt(DropIndex);
+                                string result = recipient.result.ToLower();
+                                if (result == "valid" || result == "neutral")
+                                {
+
+                                }
+
+
                             });
                         }
                     }
