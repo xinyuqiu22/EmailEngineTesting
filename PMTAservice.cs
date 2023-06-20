@@ -10,6 +10,8 @@ using Insight.Database;
 using EASendMail;
 using System.Net;
 using System.Net.Http;
+using System.Net.Mail;
+using SmtpClient = EASendMail.SmtpClient;
 
 namespace EmailEngineTesting
 {
@@ -64,7 +66,7 @@ namespace EmailEngineTesting
             public decimal OfferPayment { get; set; }
         }
 
-        public static async void sendPMTA(int EmailServiceProvider_ID, DateTime DropDate, bool Realtime)
+        public static async Task sendPMTA(int EmailServiceProvider_ID, DateTime DropDate, bool Realtime)
         {
             
             IEnumerable<EngineSettings> ES;
@@ -78,9 +80,6 @@ namespace EmailEngineTesting
 
             using (IDbConnection EmailDrop = new SqlConnection(connectionString))
             {
-                //IEnumerable<RecipientModel> temp = EmailDrop.QuerySql<RecipientModel>(
-                  //  "EXEC TEST_EmailBatchRecipients_Get @EmailServiceProvider_ID",
-                 //   new { EmailServiceProvider_ID}).ToList();
 
                 CurrentEmailBatchID = EmailDrop.QuerySql<int>(
                     "EXEC WeeklyEmailBatches_GetNext @DropDate, @Realtime, @EmailServiceProvider_ID, @Processor_ID",
@@ -118,7 +117,8 @@ namespace EmailEngineTesting
                         while(ES.Count() > 0 && CurrentEmailBatchID > 0)
                         {
                             DateTime StartTime = DateTime.Now;
-                            List<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
+                            //List<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
+                            IEnumerable<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
 
 
                             Parallel.ForEach(ES, EngineSetting =>
@@ -155,6 +155,7 @@ namespace EmailEngineTesting
                                 string result = recipient.result.ToLower();
                                 if (result == "valid" || result == "neutral")
                                 {
+                                    
                                     string bidenc = CommonUtilities.StandardEncryptText(recipient.EmailBatch_ID + "//" + recipient.EmailAddress);
                                     string UnSub = recipient.Unsubscribe.Replace("##promocode##", recipient.PromoCode).Replace("##responsecode##", recipient.ResponseCode).Replace("##emailaddress##", recipient.EmailAddress);
                                     string Google = "|value1|:|value2|:|value3|:|value4|".Replace("|value1|", recipient.EmailBatch_ID.ToString()).Replace("|value2|", recipient.ResponseCode).Replace("|value3|", DateTime.Now.ToString("MM/dd/yyyy")).Replace("|value4|", "Dlinks");
@@ -188,8 +189,8 @@ namespace EmailEngineTesting
                                     //IEnumerables dont have Add function
                                     // So I can only use Concant
                                     // But it will reduce efficieny since it involves repeatedly creating new sequences
-                                    //Emails = Emails.Concat(new[] { Email });
-                                    Emails.Add(Email);
+                                    Emails = Emails.Concat(new[] { Email });
+                                    //Emails.Add(Email);
                                     DropIndex++;
                                 }
                                 else
@@ -198,70 +199,125 @@ namespace EmailEngineTesting
                                 }
 
                             });
-
-                            using (HttpClient httpClient = new HttpClient())
+                            var sendEmailTasks = Emails.Select(async Email =>
                             {
-                                List<Task> emailTasks = new List<Task>();
-                                foreach( EmailProcessorModel Email in Emails )
+                                using (WebClient wclient = new WebClient())
                                 {
-                                    emailTasks.Add(Task.Run(async () =>
+                                    try
                                     {
+                                        Email.PURLresponse = wclient.DownloadString(Email.PURL);
+                                        Console.WriteLine(Email.PURL);
+                                        
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine("URL Failed");
+                                        Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
+                                        Console.WriteLine("PURL: " + Email.PURL);
+                                        Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                                        Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
+                                        Console.WriteLine("Error: " + ex.Message);
+                                        Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+
+                                        Email.PURLresponse = "";
+                                    }
+
+                                    Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
+                                    if (Email.responseArray.Length == 2)
+                                    {
+                                        Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                                        Email.oMail.TextBody = Email.responseArray[1];
+                                        Email.oMail.HtmlBody = Email.responseArray[0];
+                                        Console.WriteLine("1");
                                         try
                                         {
-                                            Email.PURLresponse = await httpClient.GetStringAsync(Email.PURL);
+                                            SmtpClient oSmtp = new SmtpClient();
+                                            await oSmtp.SendMailAsync(Email.oServer, Email.oMail);
+
+                                            using (IDbConnection db = new SqlConnection(connectionString))
+                                            {
+                                                await db.ExecuteSqlAsync(
+                                                    "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
+                                                    new
+                                                    {
+                                                        EmailBatch_ID = Email.EmailBatch_ID,
+                                                        ResponseCode = Email.ResponseCode,
+                                                        EmailAddress = Email.EmailAddress.ToLower(),
+                                                        MessageID = Email.oMail.MessageID,
+                                                        MessageStatus_ID = 1
+                                                    });
+                                            }
                                         }
-                                        catch (Exception ex)
+                                        
+                                        catch (Exception e)
                                         {
-                                            Console.WriteLine("URL Failed");
-                                            Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
-                                            Console.WriteLine("PURL: " + Email.PURL);
+                                            Console.WriteLine("Error: " + e.Message);
                                             Console.WriteLine("Outbound: " + Email.OutboundDomainName);
-                                            Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
-                                            Console.WriteLine("Error: " + ex.Message);
                                             Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
 
-                                            Email.PURLresponse = "";
-                                        }
 
-                                        Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
-                                        if (Email.responseArray.Length == 2)
-                                        {
-                                            Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
-                                            Email.oMail.TextBody = Email.responseArray[1];
-                                            Email.oMail.HtmlBody = Email.responseArray[0];
-
-                                            try
-                                            {
-                                                await Task.Run(() =>
-                                                {
-                                                    SmtpClient oSmtp = new SmtpClient();
-                                                    oSmtp.SendMail(Email.oServer, Email.oMail);
-                                                
-                                                    using (IDbConnection db = new SqlConnection(connectionString))
-                                                    {
-                                                        db.ExecuteSql(
-                                                            "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
-                                                            new { EmailBatch_ID = Email.EmailBatch_ID, ResponseCode = Email.ResponseCode, EmailAddress = Email.EmailAddress.ToLower(), MessageID = Email.oMail.MessageID, MessageStatus_ID = 1 });
-                                                    }
-                                                });
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                Console.WriteLine("Error: " + e.Message);
-                                                Console.WriteLine("Outbound: " + Email.OutboundDomainName);
-                                                Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
-                                            }
                                         }
-                                    }));
+                                        Console.WriteLine("2");
+                                    }
                                 }
-                                await Task.WhenAll(emailTasks);
-                            }
+                            });
+                            await Task.WhenAll(sendEmailTasks);
+                            //Parallel.ForEach(Emails, Email =>
+                            ////it can happen above and then send out
+                            ////foreach(EmailProcessorModel Email in Emails)
+                            //{
+                            //    using (WebClient wclient = new WebClient())
+                            //    {
+                            //        try
+                            //        {
+                            //            Email.PURLresponse = wclient.DownloadString(Email.PURL);
+                            //            Console.WriteLine("check");
+                            //        }
+                            //        catch (Exception ex)
+                            //        {
+                            //            Console.WriteLine("URL Failed");
+                            //            Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
+                            //            Console.WriteLine("PURL: " + Email.PURL);
+                            //            Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                            //            Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
+                            //            Console.WriteLine("Error: " + ex.Message);
+                            //            Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+                            //
+                            //            Email.PURLresponse = "";
+                            //        }
+                            //        Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
+                            //        if (Email.responseArray.Length == 2)
+                            //        {
+                            //            Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                            //            Email.oMail.TextBody = Email.responseArray[1];
+                            //            Email.oMail.HtmlBody = Email.responseArray[0];
+                            //            try
+                            //            {
+                            //                SmtpClient oSmtp = new SmtpClient();
+                            //                oSmtp.SendMail(Email.oServer, Email.oMail);
+                            //                using (IDbConnection db = new SqlConnection(connectionString))
+                            //                {
+                            //                    db.ExecuteSql(
+                            //                        "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
+                            //                        new { EmailBatch_ID = Email.EmailBatch_ID, ResponseCode = Email.ResponseCode, EmailAddress = Email.EmailAddress.ToLower(), MessageID = Email.oMail.MessageID, MessageStatus_ID = 1 });
+                            //                }
+                            //
+                            //
+                            //            }
+                            //            catch (Exception e)
+                            //            {
+                            //                Console.WriteLine("Error: " + e.Message);
+                            //                Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                            //                Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+                            //            }
+                            //        }
+                            //    }
+                            //}
+                            //);
                         }
                     }
                 }
-
             }
-
         }
     }
 }
