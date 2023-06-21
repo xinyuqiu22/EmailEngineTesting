@@ -68,7 +68,7 @@ namespace EmailEngineTesting
 
         public static async Task sendPMTA(int EmailServiceProvider_ID, DateTime DropDate, bool Realtime)
         {
-            
+
             IEnumerable<EngineSettings> ES;
             int SendCycle = 0;
             int DropIndex = 0;
@@ -107,8 +107,8 @@ namespace EmailEngineTesting
                 {
                     ES = EmailEngineSettings.QuerySql<EngineSettings>(
                         "EXEC WeeklyEmailEngineSettings_Get @EmailServiceProvider_ID",
-                        new { EmailServiceProvider_ID }).ToList();
-
+                        new { EmailServiceProvider_ID }, commandTimeout: 180).ToList();
+                    Console.WriteLine("3 mins done");
                     if (ES.Count() > 0 && CurrentEmailBatchID > 0)
                     {
                         int MinutesLeftInWeekAtStart = ES.FirstOrDefault().MinutesLeftInWeek;
@@ -123,7 +123,7 @@ namespace EmailEngineTesting
                         Console.WriteLine("Batch: " + CurrentEmailBatchID.ToString());
                         Console.WriteLine("Drop Count: " + TheDrop.Count().ToString());
 
-                        while(ES.Count() > 0 && CurrentEmailBatchID > 0)
+                        while (ES.Count() > 0 && CurrentEmailBatchID > 0)
                         {
                             DateTime StartTime = DateTime.Now;
                             //List<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
@@ -135,12 +135,12 @@ namespace EmailEngineTesting
 
                                 if (DropIndex >= TheDrop.Count())
                                 {
-                                    using (IDbConnection BatchStatus = new SqlConnection(connectionString)) 
+                                    using (IDbConnection BatchStatus = new SqlConnection(connectionString))
                                     {
                                         BatchStatus.ExecuteSql(
                                             "EXEC WeeklyEmailBatchEnd_Save @EmailBatch_ID, @EmailServiceProvider_ID, @Processor_ID",
                                             new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 1 });
-                                        
+
                                         CurrentEmailBatchID = BatchStatus.QuerySql<int>(
                                             "EXEC WeeklyEmailBatches_GetNext @DropDate, @Realtime, @EmailServiceProvider_ID, @Processor_ID",
                                             new { DropDate, Realtime, EmailServiceProvider_ID, Processor_ID = 1 }).Single();
@@ -163,7 +163,7 @@ namespace EmailEngineTesting
                                 string result = recipient.result.ToLower();
                                 if (result == "valid" || result == "neutral")
                                 {
-                                    
+
                                     string bidenc = CommonUtilities.StandardEncryptText(recipient.EmailBatch_ID + "//" + recipient.EmailAddress);
                                     string UnSub = recipient.Unsubscribe.Replace("##promocode##", recipient.PromoCode).Replace("##responsecode##", recipient.ResponseCode).Replace("##emailaddress##", recipient.EmailAddress);
                                     string Google = "|value1|:|value2|:|value3|:|value4|".Replace("|value1|", recipient.EmailBatch_ID.ToString()).Replace("|value2|", recipient.ResponseCode).Replace("|value3|", DateTime.Now.ToString("MM/dd/yyyy")).Replace("|value4|", "Dlinks");
@@ -218,7 +218,7 @@ namespace EmailEngineTesting
                                     {
                                         Email.PURLresponse = wclient.DownloadString(Email.PURL);
                                         Console.WriteLine(Email.PURL);
-                                        
+
                                     }
                                     catch (Exception ex)
                                     {
@@ -229,22 +229,23 @@ namespace EmailEngineTesting
                                         Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
                                         Console.WriteLine("Error: " + ex.Message);
                                         Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
-                            
+
                                         Email.PURLresponse = "";
                                     }
-                            
+
                                     Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
                                     if (Email.responseArray.Length == 2)
                                     {
                                         Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
                                         Email.oMail.TextBody = Email.responseArray[1];
                                         Email.oMail.HtmlBody = Email.responseArray[0];
-                                        Console.WriteLine("1");
+                                        Console.WriteLine(Email.oMail.TextBody);
+                                        Console.WriteLine(Email.oMail.HtmlBody);
                                         try
                                         {
                                             SmtpClient oSmtp = new SmtpClient();
                                             //await oSmtp.SendMailAsync(Email.oServer, Email.oMail);
-                            
+
                                             using (IDbConnection db = new SqlConnection(connectionString))
                                             {
                                                 await db.ExecuteSqlAsync(
@@ -259,14 +260,14 @@ namespace EmailEngineTesting
                                                     });
                                             }
                                         }
-                                        
+
                                         catch (Exception e)
                                         {
                                             Console.WriteLine("Error: " + e.Message);
                                             Console.WriteLine("Outbound: " + Email.OutboundDomainName);
                                             Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
-                            
-                            
+
+
                                         }
                                         Console.WriteLine("2");
                                     }
@@ -280,7 +281,7 @@ namespace EmailEngineTesting
                                 ES = EmailEngineSettings.QuerySql<EngineSettings>(
                                     "WeeklyEmailEngineSettings_Get @EmailServiceProvider_ID",
                                     new { EmailServiceProvider_ID }).ToList();
-                                
+
                                 ES = ES.Where(x => x.HourlyEmailLimit > SendCycle);
 
                                 Console.WriteLine($"Server Count Checked, currently {ES.Count()}");
