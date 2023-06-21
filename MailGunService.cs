@@ -130,7 +130,7 @@ namespace EmailEngineTesting
                                                 "EXEC EmailBatches_GetNextV2 @DropDate, @Realtime, @EmailServiceProvider_ID, @Processor_ID",
                                                new { DropDate = DropDate, Realtime = 0, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 }).Single();
 
-                                        TheDrop = EmailDrop.QuerySql<RecipientModel>(
+                                        TheDrop = BatchStatus.QuerySql<RecipientModel>(
                                                     "EXEC WeeklyEmailBatchRecipients_GetMailgunV2 @EmailServiceProvider_ID, @EmailBatch_ID",
                                                     new { EmailServiceProvider_ID = EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID }).ToList();
 

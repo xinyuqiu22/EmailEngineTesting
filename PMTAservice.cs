@@ -94,6 +94,15 @@ namespace EmailEngineTesting
                     "EXEC WeeklyEmailBatchRecipients_GetV3 @EmailServiceProvider_ID, @EmailBatch_ID, @Realtime",
                     new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID, Realtime });
 
+                //WeekCount = await EmailDrop.SingleSqlAsync<int>(
+                //    "EXEC WeeklyEmailBatchRecipients_GetMailgunCount @EmailServiceProvider_ID, @DropDate",
+                //    new { EmailServiceProvider_ID, DropDate });
+                //
+                //
+                //IEnumerable<RecipientModel> TheDrop = await EmailDrop.QuerySqlAsync<RecipientModel>(
+                //    "EXEC WeeklyEmailBatchRecipients_GetMailgunV2 @EmailServiceProvider_ID, @EmailBatch_ID",
+                //    new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID });
+
                 using (IDbConnection EmailEngineSettings = new SqlConnection(connectionString))
                 {
                     ES = EmailEngineSettings.QuerySql<EngineSettings>(
@@ -132,7 +141,7 @@ namespace EmailEngineTesting
                                             "EXEC WeeklyEmailBatchEnd_Save @EmailBatch_ID, @EmailServiceProvider_ID, @Processor_ID",
                                             new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 1 });
                                         
-                                        CurrentEmailBatchID = EmailDrop.QuerySql<int>(
+                                        CurrentEmailBatchID = BatchStatus.QuerySql<int>(
                                             "EXEC WeeklyEmailBatches_GetNext @DropDate, @Realtime, @EmailServiceProvider_ID, @Processor_ID",
                                             new { DropDate, Realtime, EmailServiceProvider_ID, Processor_ID = 1 }).Single();
 
@@ -140,7 +149,7 @@ namespace EmailEngineTesting
 
                                         Console.WriteLine("Batch: " + CurrentEmailBatchID.ToString());
 
-                                        TheDrop = EmailDrop.QuerySql<RecipientModel>(
+                                        TheDrop = BatchStatus.QuerySql<RecipientModel>(
                                             "EXEC WeeklyEmailBatchRecipients_GetV3 @EmailServiceProvider_ID, @EmailBatch_ID, @Realtime",
                                             new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID, Realtime }).ToList();
 
@@ -190,8 +199,8 @@ namespace EmailEngineTesting
                                     // But it will reduce efficieny since it involves repeatedly creating new sequences
                                     Emails = Emails.Concat(new[] { Email });
                                     //Emails.Add(Email);
-                                    Console.WriteLine(Emails.Count());
-                                    Console.WriteLine(Email.oMail.To.ToString());
+                                    //Console.WriteLine(Emails.Count());
+                                    //Console.WriteLine(Email.oMail.To.ToString());
                                     DropIndex++;
                                 }
                                 else
@@ -201,74 +210,77 @@ namespace EmailEngineTesting
 
                             });
                             Console.WriteLine("Done");
-                            //var sendEmailTasks = Emails.Select(async Email =>
-                            //{
-                            //    using (WebClient wclient = new WebClient())
-                            //    {
-                            //        try
-                            //        {
-                            //            Email.PURLresponse = wclient.DownloadString(Email.PURL);
-                            //            Console.WriteLine(Email.PURL);
-                            //            
-                            //        }
-                            //        catch (Exception ex)
-                            //        {
-                            //            Console.WriteLine("URL Failed");
-                            //            Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
-                            //            Console.WriteLine("PURL: " + Email.PURL);
-                            //            Console.WriteLine("Outbound: " + Email.OutboundDomainName);
-                            //            Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
-                            //            Console.WriteLine("Error: " + ex.Message);
-                            //            Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
-                            //
-                            //            Email.PURLresponse = "";
-                            //        }
-                            //
-                            //        Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
-                            //        if (Email.responseArray.Length == 2)
-                            //        {
-                            //            Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
-                            //            Email.oMail.TextBody = Email.responseArray[1];
-                            //            Email.oMail.HtmlBody = Email.responseArray[0];
-                            //            Console.WriteLine("1");
-                            //            try
-                            //            {
-                            //                SmtpClient oSmtp = new SmtpClient();
-                            //                await oSmtp.SendMailAsync(Email.oServer, Email.oMail);
-                            //
-                            //                using (IDbConnection db = new SqlConnection(connectionString))
-                            //                {
-                            //                    await db.ExecuteSqlAsync(
-                            //                        "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
-                            //                        new
-                            //                        {
-                            //                            EmailBatch_ID = Email.EmailBatch_ID,
-                            //                            ResponseCode = Email.ResponseCode,
-                            //                            EmailAddress = Email.EmailAddress.ToLower(),
-                            //                            MessageID = Email.oMail.MessageID,
-                            //                            MessageStatus_ID = 1
-                            //                        });
-                            //                }
-                            //            }
-                            //            
-                            //            catch (Exception e)
-                            //            {
-                            //                Console.WriteLine("Error: " + e.Message);
-                            //                Console.WriteLine("Outbound: " + Email.OutboundDomainName);
-                            //                Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
-                            //
-                            //
-                            //            }
-                            //            Console.WriteLine("2");
-                            //        }
-                            //    }
-                            //});
-                            //await Task.WhenAll(sendEmailTasks);
-                            //SendCycle++;
-                            using (IDbConnection EmailEngineSettingsNew = new SqlConnection("DataCenterEmailEngine"))
+                            var sendEmailTasks = Emails.Select(async Email =>
+                            {
+                                using (WebClient wclient = new WebClient())
+                                {
+                                    try
+                                    {
+                                        Email.PURLresponse = wclient.DownloadString(Email.PURL);
+                                        Console.WriteLine(Email.PURL);
+                                        
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine("URL Failed");
+                                        Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
+                                        Console.WriteLine("PURL: " + Email.PURL);
+                                        Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                                        Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
+                                        Console.WriteLine("Error: " + ex.Message);
+                                        Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+                            
+                                        Email.PURLresponse = "";
+                                    }
+                            
+                                    Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
+                                    if (Email.responseArray.Length == 2)
+                                    {
+                                        Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                                        Email.oMail.TextBody = Email.responseArray[1];
+                                        Email.oMail.HtmlBody = Email.responseArray[0];
+                                        Console.WriteLine("1");
+                                        try
+                                        {
+                                            SmtpClient oSmtp = new SmtpClient();
+                                            //await oSmtp.SendMailAsync(Email.oServer, Email.oMail);
+                            
+                                            using (IDbConnection db = new SqlConnection(connectionString))
+                                            {
+                                                await db.ExecuteSqlAsync(
+                                                    "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
+                                                    new
+                                                    {
+                                                        EmailBatch_ID = Email.EmailBatch_ID,
+                                                        ResponseCode = Email.ResponseCode,
+                                                        EmailAddress = Email.EmailAddress.ToLower(),
+                                                        MessageID = Email.oMail.MessageID,
+                                                        MessageStatus_ID = 1
+                                                    });
+                                            }
+                                        }
+                                        
+                                        catch (Exception e)
+                                        {
+                                            Console.WriteLine("Error: " + e.Message);
+                                            Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                                            Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+                            
+                            
+                                        }
+                                        Console.WriteLine("2");
+                                    }
+                                }
+                            });
+                            await Task.WhenAll(sendEmailTasks);
+                            SendCycle++;
+                            using (IDbConnection EmailEngineSettingsNew = new SqlConnection(connectionString))
                             {
                                 int currentESCount = ES.Count();
-                                ES = EmailEngineSettingsNew.Query<EngineSettings>("WeeklyEmailEngineSettings_Get", new { EmailServiceProvider_ID }, commandType: CommandType.StoredProcedure, commandTimeout: 18000).ToList();
+                                ES = EmailEngineSettings.QuerySql<EngineSettings>(
+                                    "WeeklyEmailEngineSettings_Get @EmailServiceProvider_ID",
+                                    new { EmailServiceProvider_ID }).ToList();
+                                
                                 ES = ES.Where(x => x.HourlyEmailLimit > SendCycle);
 
                                 Console.WriteLine($"Server Count Checked, currently {ES.Count()}");
