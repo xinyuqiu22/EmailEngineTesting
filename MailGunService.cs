@@ -218,26 +218,26 @@ namespace EmailEngineTesting
                                     Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
                                     if (Email.responseArray.Length == 2)
                                     {
-                                        var buildEmailBodiesTasks = Email.responseArray.Select(async response =>
-                                        {
-                                            if (response.StartsWith("</body>"))
-                                            {
-                                                return response.Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
-                                            }
-                                            else
-                                            {
-                                                return response;
-                                            }
-                                        });
+                                        //var buildEmailBodiesTasks = Email.responseArray.Select(async response =>
+                                        //{
+                                        //    if (response.StartsWith("</body>"))
+                                        //    {
+                                        //        return response.Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                                        //    }
+                                        //    else
+                                        //    {
+                                        //        return response;
+                                        //    }
+                                        //});
+                                        //
+                                        //
+                                        //var processedResponseArray = await Task.WhenAll(buildEmailBodiesTasks);
+                                        //Email.request.AddParameter("html", processedResponseArray[0]);
+                                        //Email.request.AddParameter("text", processedResponseArray[1]);
 
-
-                                        var processedResponseArray = await Task.WhenAll(buildEmailBodiesTasks);
+                                        Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
                                         Email.request.AddParameter("html", Email.responseArray[0]);
                                         Email.request.AddParameter("text", Email.responseArray[1]);
-
-                                        //Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
-                                        //Email.request.AddParameter("html", Email.responseArray[0]);
-                                        //Email.request.AddParameter("text", Email.responseArray[1]);
 
                                         try
                                         {
@@ -250,8 +250,8 @@ namespace EmailEngineTesting
                                                 {
                                                     //SentMessage.CommandTimeout = 180000;
                                                     SentMessage.ExecuteSql(
-                                                        "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress，@MessageID， @MessageStatus_ID ",
-                                                        new { Email.EmailBatch_ID, Email.ResponseCode, EmailAddress = Email.EmailAddress.ToLower(), ResultsOB.id, MessageStatus_ID = 1 });
+                                                        "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
+                                                        new { Email.EmailBatch_ID, Email.ResponseCode, EmailAddress = Email.EmailAddress.ToLower(), MessageID = ResultsOB.id, MessageStatus_ID = 1 });
                                                 }
                                             }
                                             else
@@ -260,6 +260,7 @@ namespace EmailEngineTesting
                                                 ES = ES.Where(x => x.OutboundDomainName != Email.OutboundDomainName);
                                                 Console.WriteLine("Email Servers: " + ES.Count());
                                             }
+
                                         }
                                         catch (Exception e)
                                         {
