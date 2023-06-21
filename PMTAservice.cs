@@ -94,15 +94,6 @@ namespace EmailEngineTesting
                     "EXEC WeeklyEmailBatchRecipients_GetV3 @EmailServiceProvider_ID, @EmailBatch_ID, @Realtime",
                     new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID, Realtime });
 
-                //WeekCount = await EmailDrop.SingleSqlAsync<int>(
-                //    "EXEC WeeklyEmailBatchRecipients_GetMailgunCount @EmailServiceProvider_ID, @DropDate",
-                //    new { EmailServiceProvider_ID, DropDate });
-                //
-                //
-                //IEnumerable<RecipientModel> TheDrop = await EmailDrop.QuerySqlAsync<RecipientModel>(
-                //    "EXEC WeeklyEmailBatchRecipients_GetMailgunV2 @EmailServiceProvider_ID, @EmailBatch_ID",
-                //    new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID });
-
                 using (IDbConnection EmailEngineSettings = new SqlConnection(connectionString))
                 {
                     ES = EmailEngineSettings.QuerySql<EngineSettings>(

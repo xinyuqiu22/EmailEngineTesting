@@ -218,9 +218,26 @@ namespace EmailEngineTesting
                                     Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
                                     if (Email.responseArray.Length == 2)
                                     {
-                                        Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                                        var buildEmailBodiesTasks = Email.responseArray.Select(async response =>
+                                        {
+                                            if (response.StartsWith("</body>"))
+                                            {
+                                                return response.Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                                            }
+                                            else
+                                            {
+                                                return response;
+                                            }
+                                        });
+
+
+                                        var processedResponseArray = await Task.WhenAll(buildEmailBodiesTasks);
                                         Email.request.AddParameter("html", Email.responseArray[0]);
                                         Email.request.AddParameter("text", Email.responseArray[1]);
+
+                                        //Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                                        //Email.request.AddParameter("html", Email.responseArray[0]);
+                                        //Email.request.AddParameter("text", Email.responseArray[1]);
 
                                         try
                                         {
