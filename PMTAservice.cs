@@ -108,7 +108,6 @@ namespace EmailEngineTesting
                     ES = EmailEngineSettings.QuerySql<EngineSettings>(
                         "EXEC WeeklyEmailEngineSettings_Get @EmailServiceProvider_ID",
                         new { EmailServiceProvider_ID }, commandTimeout: 180).ToList();
-                    Console.WriteLine("3 mins done");
                     if (ES.Count() > 0 && CurrentEmailBatchID > 0)
                     {
                         int MinutesLeftInWeekAtStart = ES.FirstOrDefault().MinutesLeftInWeek;
@@ -199,8 +198,6 @@ namespace EmailEngineTesting
                                     // But it will reduce efficieny since it involves repeatedly creating new sequences
                                     Emails = Emails.Concat(new[] { Email });
                                     //Emails.Add(Email);
-                                    //Console.WriteLine(Emails.Count());
-                                    //Console.WriteLine(Email.oMail.To.ToString());
                                     DropIndex++;
                                 }
                                 else
@@ -209,7 +206,7 @@ namespace EmailEngineTesting
                                 }
 
                             });
-                            Console.WriteLine("Done");
+
                             var sendEmailTasks = Emails.Select(async Email =>
                             {
                                 using (WebClient wclient = new WebClient())
@@ -217,7 +214,6 @@ namespace EmailEngineTesting
                                     try
                                     {
                                         Email.PURLresponse = wclient.DownloadString(Email.PURL);
-                                        Console.WriteLine(Email.PURL);
 
                                     }
                                     catch (Exception ex)
@@ -236,11 +232,29 @@ namespace EmailEngineTesting
                                     Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
                                     if (Email.responseArray.Length == 2)
                                     {
-                                        Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+
+                                        var buildEmailBodiesTasks = Email.responseArray.Select(async response =>
+                                        {
+                                            if (response.StartsWith("</body>"))
+                                            {
+                                                return response.Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                                            }
+                                            else
+                                            {
+                                                return response;
+                                            }
+                                        });
+
+                                        
+                                        var processedResponseArray = await Task.WhenAll(buildEmailBodiesTasks);
                                         Email.oMail.TextBody = Email.responseArray[1];
                                         Email.oMail.HtmlBody = Email.responseArray[0];
                                         Console.WriteLine(Email.oMail.TextBody);
                                         Console.WriteLine(Email.oMail.HtmlBody);
+                                        //Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                                        //Email.oMail.TextBody = Email.responseArray[1];
+                                        //Email.oMail.HtmlBody = Email.responseArray[0];
+
                                         try
                                         {
                                             SmtpClient oSmtp = new SmtpClient();
@@ -269,7 +283,6 @@ namespace EmailEngineTesting
 
 
                                         }
-                                        Console.WriteLine("2");
                                     }
                                 }
                             });
