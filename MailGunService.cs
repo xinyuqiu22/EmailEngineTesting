@@ -173,6 +173,8 @@ namespace EmailEngineTesting
                                         }
                                     };
 
+                                    //move the email body here 
+
                                     string SubjectLine = recipient.SubjectLine.Replace("##firstname##", CommonUtilities.Capitalize(recipient.FirstName))
                                            .Replace("##emailaddress##", recipient.EmailAddress)
                                            .Replace("##offerpayment##", recipient.OfferPayment.ToString("C0"));
@@ -245,14 +247,16 @@ namespace EmailEngineTesting
                                             if (resp.IsSuccessful)
                                             {
                                                 string results = resp.Content.ToString();
-                                                MailCallResult ResultsOB = JsonConvert.DeserializeObject<MailCallResult>(results);
-                                                using (IDbConnection SentMessage = new SqlConnection(connectionString))
-                                                {
-                                                    //SentMessage.CommandTimeout = 180000;
-                                                    SentMessage.ExecuteSql(
-                                                        "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
-                                                        new { Email.EmailBatch_ID, Email.ResponseCode, EmailAddress = Email.EmailAddress.ToLower(), MessageID = ResultsOB.id, MessageStatus_ID = 1 });
-                                                }
+                                                Console.WriteLine("Emailed -> " + Email.EmailAddress + " Subjectline -> " + Email.SubjectLine);
+                                                //RestResponse resp = await Email.client.ExecuteAsync(Email.request);
+                                                //MailCallResult ResultsOB = JsonConvert.DeserializeObject<MailCallResult>(results);
+                                                //using (IDbConnection SentMessage = new SqlConnection(connectionString))
+                                                //{
+                                                //    //SentMessage.CommandTimeout = 180000;
+                                                //    SentMessage.ExecuteSql(
+                                                //        "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
+                                                //        new { Email.EmailBatch_ID, Email.ResponseCode, EmailAddress = Email.EmailAddress.ToLower(), MessageID = ResultsOB.id, MessageStatus_ID = 1 });
+                                                //}
                                             }
                                             else
                                             {
@@ -293,6 +297,7 @@ namespace EmailEngineTesting
                         }
                         using (IDbConnection BatchStatus = new SqlConnection(connectionString))
                         {
+                            //check this call as well
                             BatchStatus.ExecuteSql(
                                 "EXEC WeeklyEmailBatchStartEndPartial_Save, @EmailServiceProvider_ID, @Processor_ID",
                                 new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 },

@@ -149,6 +149,8 @@ namespace EmailEngineTesting
                                         if (TheDrop.Count() == 0) return;
                                     }
                                 }
+                                //var iter = TheDrop.GetEnumerator();
+
                                 RecipientModel recipient = TheDrop.ElementAt(DropIndex);
                                 string result = recipient.result.ToLower();
                                 if (result == "valid" || result == "neutral")
@@ -240,8 +242,8 @@ namespace EmailEngineTesting
                                         var processedResponseArray = await Task.WhenAll(buildEmailBodiesTasks);
                                         Email.oMail.TextBody = Email.responseArray[1];
                                         Email.oMail.HtmlBody = Email.responseArray[0];
-                                        Console.WriteLine(Email.oMail.TextBody);
-                                        Console.WriteLine(Email.oMail.HtmlBody);
+                                        //Console.WriteLine(Email.oMail.TextBody);
+                                        //Console.WriteLine(Email.oMail.HtmlBody);
                                         //Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
                                         //Email.oMail.TextBody = Email.responseArray[1];
                                         //Email.oMail.HtmlBody = Email.responseArray[0];
