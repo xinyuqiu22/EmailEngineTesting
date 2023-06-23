@@ -118,6 +118,52 @@ namespace EmailEngineTesting
 
                             Parallel.ForEach(ES, EngineSetting =>
                             {
+                                //using (var iter = TheDrop.GetEnumerator())
+                                //{
+                                //    while (iter.MoveNext())
+                                //    {
+                                //        RecipientModel recipient = TheDrop.ElementAt(DropIndex);
+                                //        string result = recipient.result.ToLower();
+                                //        if (result == "valid" || result == "neutral")
+                                //        {
+                                //
+                                //            string bidenc = CommonUtilities.StandardEncryptText(recipient.EmailBatch_ID + "//" + recipient.EmailAddress);
+                                //            string UnSub = recipient.Unsubscribe.Replace("##promocode##", recipient.PromoCode).Replace("##responsecode##", recipient.ResponseCode).Replace("##emailaddress##", recipient.EmailAddress);
+                                //            string Google = "|value1|:|value2|:|value3|:|value4|".Replace("|value1|", recipient.EmailBatch_ID.ToString()).Replace("|value2|", recipient.ResponseCode).Replace("|value3|", DateTime.Now.ToString("MM/dd/yyyy")).Replace("|value4|", "Dlinks");
+                                //
+                                //            EmailProcessorModel Email = new EmailProcessorModel
+                                //            {
+                                //                oServer = new SmtpServer(EngineSetting.OutboundServerAddress)
+                                //                {
+                                //                    User = EngineSetting.OutboundUsername,
+                                //                    Password = EngineSetting.OutboundPP,
+                                //                    ConnectType = SmtpConnectType.ConnectTryTLS,
+                                //                    Port = 2525
+                                //                },
+                                //                PURL = recipient.TemplateURL.ToLower().Replace("##responsecode##", recipient.ResponseCode).Replace("##emailaddress##", recipient.EmailAddress).Replace("##bidenc##", bidenc).Replace("##bid##", recipient.EmailBatch_ID.ToString()),
+                                //                EmailBatch_ID = recipient.EmailBatch_ID,
+                                //                ResponseCode = recipient.ResponseCode,
+                                //                PromoCode = recipient.PromoCode,
+                                //                EmailAddress = recipient.EmailAddress,
+                                //                OutboundDomainName = EngineSetting.OutboundDomainName
+                                //            };
+                                //
+                                //            Email.oMail = new SmtpMail("ES-E1582190613-00899-DU956331B9EA29VA-51T11E9DD8A7D591")
+                                //            {
+                                //                //Bcc = "buddy@buddymurphy.com",
+                                //                From = recipient.FromEmailAddress.Replace("@offersdirect.com", "@" + EngineSetting.OutboundDomainName).Replace("@mailgun.offersdirect.com", "@" + EngineSetting.OutboundDomainName),
+                                //                To = CommonUtilities.Capitalize(recipient.FirstName) + " " + CommonUtilities.Capitalize(recipient.LastName) + " <" + recipient.EmailAddress.ToLower() + ">",
+                                //                ReplyTo = recipient.ReplyToEmailAddress,
+                                //                Subject = recipient.SubjectLine.Replace("##firstname##", CommonUtilities.Capitalize(recipient.FirstName)).Replace("##emailaddress##", recipient.EmailAddress).Replace("##offerpayment##", recipient.OfferPayment.ToString("C0"))
+                                //            };
+                                //            Email.oMail.Headers.Add("List-Unsubscribe", String.Format(" <{0}>", UnSub));
+                                //            lock (Emails)
+                                //            {
+                                //                Emails = Emails.Concat(new[] { Email });
+                                //            }
+                                //        }
+                                //    }
+                                //}
                                 if (DropIndex >= TheDrop.Count())
                                 {
                                     using(IDbConnection BatchStatus = new SqlConnection(connectionString)) 
@@ -243,27 +289,28 @@ namespace EmailEngineTesting
 
                                         try
                                         {
-                                            RestResponse resp = await Email.client.ExecuteAsync(Email.request);
-                                            if (resp.IsSuccessful)
-                                            {
-                                                string results = resp.Content.ToString();
-                                                Console.WriteLine("Emailed -> " + Email.EmailAddress + " Subjectline -> " + Email.SubjectLine);
-                                                //RestResponse resp = await Email.client.ExecuteAsync(Email.request);
-                                                //MailCallResult ResultsOB = JsonConvert.DeserializeObject<MailCallResult>(results);
-                                                //using (IDbConnection SentMessage = new SqlConnection(connectionString))
-                                                //{
-                                                //    //SentMessage.CommandTimeout = 180000;
-                                                //    SentMessage.ExecuteSql(
-                                                //        "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
-                                                //        new { Email.EmailBatch_ID, Email.ResponseCode, EmailAddress = Email.EmailAddress.ToLower(), MessageID = ResultsOB.id, MessageStatus_ID = 1 });
-                                                //}
-                                            }
-                                            else
-                                            {
-                                                Console.WriteLine("Failed: " + resp.Content);
-                                                ES = ES.Where(x => x.OutboundDomainName != Email.OutboundDomainName);
-                                                Console.WriteLine("Email Servers: " + ES.Count());
-                                            }
+                                            Console.WriteLine("Emailed -> " + Email.EmailAddress + " Subjectline -> " + Email.SubjectLine);
+                                            //RestResponse resp = await Email.client.ExecuteAsync(Email.request);
+                                            //if (resp.IsSuccessful)
+                                            //{
+                                            //    string results = resp.Content.ToString();
+                                            //    Console.WriteLine("Emailed -> " + Email.EmailAddress + " Subjectline -> " + Email.SubjectLine);
+                                            //    //RestResponse resp = await Email.client.ExecuteAsync(Email.request);
+                                            //    //MailCallResult ResultsOB = JsonConvert.DeserializeObject<MailCallResult>(results);
+                                            //    //using (IDbConnection SentMessage = new SqlConnection(connectionString))
+                                            //    //{
+                                            //    //    //SentMessage.CommandTimeout = 180000;
+                                            //    //    SentMessage.ExecuteSql(
+                                            //    //        "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
+                                            //    //        new { Email.EmailBatch_ID, Email.ResponseCode, EmailAddress = Email.EmailAddress.ToLower(), MessageID = ResultsOB.id, MessageStatus_ID = 1 });
+                                            //    //}
+                                            //}
+                                            //else
+                                            //{
+                                            //    Console.WriteLine("Failed: " + resp.Content);
+                                            //    ES = ES.Where(x => x.OutboundDomainName != Email.OutboundDomainName);
+                                            //    Console.WriteLine("Email Servers: " + ES.Count());
+                                            //}
 
                                         }
                                         catch (Exception e)
