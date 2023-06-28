@@ -114,56 +114,11 @@ namespace EmailEngineTesting
                         while (ES.Count() > 0 && CurrentEmailBatchID > 0)
                         {
                             DateTime Starttime = DateTime.Now;
-                            List<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
+                            IEnumerable<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
 
-                            Parallel.ForEach(ES, EngineSetting =>
+                            foreach (EngineSettings EngineSetting in ES)
                             {
-                                //using (var iter = TheDrop.GetEnumerator())
-                                //{
-                                //    while (iter.MoveNext())
-                                //    {
-                                //        RecipientModel recipient = TheDrop.ElementAt(DropIndex);
-                                //        string result = recipient.result.ToLower();
-                                //        if (result == "valid" || result == "neutral")
-                                //        {
-                                //
-                                //            string bidenc = CommonUtilities.StandardEncryptText(recipient.EmailBatch_ID + "//" + recipient.EmailAddress);
-                                //            string UnSub = recipient.Unsubscribe.Replace("##promocode##", recipient.PromoCode).Replace("##responsecode##", recipient.ResponseCode).Replace("##emailaddress##", recipient.EmailAddress);
-                                //            string Google = "|value1|:|value2|:|value3|:|value4|".Replace("|value1|", recipient.EmailBatch_ID.ToString()).Replace("|value2|", recipient.ResponseCode).Replace("|value3|", DateTime.Now.ToString("MM/dd/yyyy")).Replace("|value4|", "Dlinks");
-                                //
-                                //            EmailProcessorModel Email = new EmailProcessorModel
-                                //            {
-                                //                oServer = new SmtpServer(EngineSetting.OutboundServerAddress)
-                                //                {
-                                //                    User = EngineSetting.OutboundUsername,
-                                //                    Password = EngineSetting.OutboundPP,
-                                //                    ConnectType = SmtpConnectType.ConnectTryTLS,
-                                //                    Port = 2525
-                                //                },
-                                //                PURL = recipient.TemplateURL.ToLower().Replace("##responsecode##", recipient.ResponseCode).Replace("##emailaddress##", recipient.EmailAddress).Replace("##bidenc##", bidenc).Replace("##bid##", recipient.EmailBatch_ID.ToString()),
-                                //                EmailBatch_ID = recipient.EmailBatch_ID,
-                                //                ResponseCode = recipient.ResponseCode,
-                                //                PromoCode = recipient.PromoCode,
-                                //                EmailAddress = recipient.EmailAddress,
-                                //                OutboundDomainName = EngineSetting.OutboundDomainName
-                                //            };
-                                //
-                                //            Email.oMail = new SmtpMail("ES-E1582190613-00899-DU956331B9EA29VA-51T11E9DD8A7D591")
-                                //            {
-                                //                //Bcc = "buddy@buddymurphy.com",
-                                //                From = recipient.FromEmailAddress.Replace("@offersdirect.com", "@" + EngineSetting.OutboundDomainName).Replace("@mailgun.offersdirect.com", "@" + EngineSetting.OutboundDomainName),
-                                //                To = CommonUtilities.Capitalize(recipient.FirstName) + " " + CommonUtilities.Capitalize(recipient.LastName) + " <" + recipient.EmailAddress.ToLower() + ">",
-                                //                ReplyTo = recipient.ReplyToEmailAddress,
-                                //                Subject = recipient.SubjectLine.Replace("##firstname##", CommonUtilities.Capitalize(recipient.FirstName)).Replace("##emailaddress##", recipient.EmailAddress).Replace("##offerpayment##", recipient.OfferPayment.ToString("C0"))
-                                //            };
-                                //            Email.oMail.Headers.Add("List-Unsubscribe", String.Format(" <{0}>", UnSub));
-                                //            lock (Emails)
-                                //            {
-                                //                Emails = Emails.Concat(new[] { Email });
-                                //            }
-                                //        }
-                                //    }
-                                //}
+                            
                                 if (DropIndex >= TheDrop.Count())
                                 {
                                     using(IDbConnection BatchStatus = new SqlConnection(connectionString)) 
@@ -171,15 +126,15 @@ namespace EmailEngineTesting
                                         BatchStatus.ExecuteSql(
                                             "EXEC WeeklyEmailBatchEnd_Save @EmailBatch_ID, @EmailServiceProvider_ID, @Processor_ID",
                                             new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 });
-
+                                
                                         CurrentEmailBatchID = BatchStatus.QuerySql<int>(
                                                 "EXEC EmailBatches_GetNextV2 @DropDate, @Realtime, @EmailServiceProvider_ID, @Processor_ID",
                                                new { DropDate = DropDate, Realtime = 0, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 }).Single();
-
+                                
                                         TheDrop = BatchStatus.QuerySql<RecipientModel>(
                                                     "EXEC WeeklyEmailBatchRecipients_GetMailgunV2 @EmailServiceProvider_ID, @EmailBatch_ID",
                                                     new { EmailServiceProvider_ID = EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID }).ToList();
-
+                                
                                         Console.WriteLine("Email Servers: " + ES.Count().ToString());
                                         Console.WriteLine("Drop Count: " + TheDrop.Count().ToString());
                                         Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
@@ -195,13 +150,13 @@ namespace EmailEngineTesting
                                     string bidenc = CommonUtilities.StandardEncryptText(recipient.EmailBatch_ID + "//" + recipient.EmailAddress);
                                     string UnSub = recipient.Unsubscribe.Replace("##promocode##", recipient.PromoCode).Replace("##responsecode##", recipient.ResponseCode).Replace("##emailaddress##", recipient.EmailAddress);
                                     string Google = "|value1|:|value2|:|value3|:|value4|".Replace("|value1|", recipient.EmailBatch_ID.ToString()).Replace("|value2|", recipient.ResponseCode).Replace("|value3|", DateTime.Now.ToString("MM/dd/yyyy")).Replace("|value4|", "Dlinks");
-
+                                
                                     var clientOptions = new RestClientOptions(EngineSetting.OutboundServerAddress)
                                     {
                                         Authenticator = new HttpBasicAuthenticator("api", EngineSetting.OutboundPP),
                                         BaseUrl = new Uri(EngineSetting.OutboundServerAddress)
                                     };
-
+                                
                                     EmailProcessorModel Email = new EmailProcessorModel
                                     {
                                         PURL = recipient.TemplateURL.ToLower().Replace("##responsecode##", recipient.ResponseCode).Replace("##emailaddress##", recipient.EmailAddress).Replace("##bidenc##", bidenc).Replace("##bid##", recipient.EmailBatch_ID.ToString()),
@@ -218,29 +173,27 @@ namespace EmailEngineTesting
                                             Method = Method.Post
                                         }
                                     };
-
-                                    //move the email body here 
-
+                                
                                     string SubjectLine = recipient.SubjectLine.Replace("##firstname##", CommonUtilities.Capitalize(recipient.FirstName))
                                            .Replace("##emailaddress##", recipient.EmailAddress)
                                            .Replace("##offerpayment##", recipient.OfferPayment.ToString("C0"));
-
+                                
                                     Email.request.AddParameter("domain", EngineSetting.OutboundDomainName, ParameterType.UrlSegment);
                                     Email.request.AddParameter("from", recipient.FromEmailAddress.Replace("@offersdirect.com", "@" + EngineSetting.OutboundDomainName));
                                     Email.request.AddParameter("to", CommonUtilities.Capitalize(recipient.FirstName) + " " + CommonUtilities.Capitalize(recipient.LastName) + " <" + recipient.EmailAddress.ToLower() + ">");
-
+                                
                                     Email.request.AddParameter("subject", SubjectLine);
                                     Email.request.AddParameter("o:dkim", "yes");
                                     Email.request.AddParameter("o:tracking-opens", "yes");
                                     Email.request.AddParameter("o:tag", recipient.EmailAddress.ToLower().Split('@')[1]);                       
                                     Email.request.AddParameter("o:tag", "STO_enabled");        
-
+                                
                                     Email.request.AddParameter("h:List-Unsubscribe", UnSub);
                                     Email.request.AddParameter("h:Reply-To", recipient.ReplyToEmailAddress);
-                                    Emails.Add(Email);
+                                    Emails = Emails.Concat(new[] { Email });
                                     DropIndex++;
                                 }
-                            });
+                            };
 
                             var SendEmailTasks = Emails.Select(async (Email) =>
                             {
@@ -266,30 +219,13 @@ namespace EmailEngineTesting
                                     Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
                                     if (Email.responseArray.Length == 2)
                                     {
-                                        var buildEmailBodiesTasks = Email.responseArray.Select(async response =>
-                                        {
-                                            if (response.StartsWith("</body>"))
-                                            {
-                                                return response.Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
-                                            }
-                                            else
-                                            {
-                                                return response;
-                                            }
-                                        });
-                                        
-                                        
-                                        var processedResponseArray = await Task.WhenAll(buildEmailBodiesTasks);
-                                        Email.request.AddParameter("html", processedResponseArray[0]);
-                                        Email.request.AddParameter("text", processedResponseArray[1]);
-
-                                        //Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
-                                        //Email.request.AddParameter("html", Email.responseArray[0]);
-                                        //Email.request.AddParameter("text", Email.responseArray[1]);
+                                        Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                                        Email.request.AddParameter("html", Email.responseArray[0]);
+                                        Email.request.AddParameter("text", Email.responseArray[1]);
 
                                         try
                                         {
-                                            Console.WriteLine("Emailed -> " + Email.EmailAddress + " Subjectline -> " + Email.SubjectLine);
+                                            Console.WriteLine("Emailed -> " + Email.EmailAddress  + " ResponseCode -> " + Email.ResponseCode + " Subjectline -> " + Email.SubjectLine);
                                             //RestResponse resp = await Email.client.ExecuteAsync(Email.request);
                                             //if (resp.IsSuccessful)
                                             //{
