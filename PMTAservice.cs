@@ -116,11 +116,9 @@ namespace EmailEngineTesting
                         while (ES.Count() > 0 && CurrentEmailBatchID > 0)
                         {
                             DateTime StartTime = DateTime.Now;
-                            //List<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
                             IEnumerable<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
 
-
-                            Parallel.ForEach(ES, EngineSetting =>
+                            foreach(EngineSettings EngineSetting in ES)
                             {
 
                                 if (DropIndex >= TheDrop.Count())
@@ -184,11 +182,7 @@ namespace EmailEngineTesting
                                         Subject = recipient.SubjectLine.Replace("##firstname##", CommonUtilities.Capitalize(recipient.FirstName)).Replace("##emailaddress##", recipient.EmailAddress).Replace("##offerpayment##", recipient.OfferPayment.ToString("C0"))
                                     };
                                     Email.oMail.Headers.Add("List-Unsubscribe", String.Format(" <{0}>", UnSub));
-                                    //IEnumerables dont have Add function
-                                    // So I can only use Concant
-                                    // But it will reduce efficieny since it involves repeatedly creating new sequences
                                     Emails = Emails.Concat(new[] { Email });
-                                    //Emails.Add(Email);
                                     DropIndex++;
                                 }
                                 else
@@ -196,7 +190,7 @@ namespace EmailEngineTesting
                                     DropIndex++;
                                 }
 
-                            });
+                            };
 
                             var sendEmailTasks = Emails.Select(async Email =>
                             {
@@ -223,57 +217,40 @@ namespace EmailEngineTesting
                                     Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
                                     if (Email.responseArray.Length == 2)
                                     {
-
-                                        //var buildEmailBodiesTasks = Email.responseArray.Select(async response =>
-                                        //{
-                                        //    if (response.StartsWith("</body>"))
-                                        //    {
-                                        //        return response.Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
-                                        //    }
-                                        //    else
-                                        //    {
-                                        //        return response;
-                                        //    }
-                                        //});
-                                        //
-                                        //
-                                        //var processedResponseArray = await Task.WhenAll(buildEmailBodiesTasks);
-                                        //Email.oMail.TextBody = Email.responseArray[1];
-                                        //Email.oMail.HtmlBody = Email.responseArray[0];
-                                        //Console.WriteLine(Email.oMail.TextBody);
-                                        //Console.WriteLine(Email.oMail.HtmlBody);
                                         Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
                                         Email.oMail.TextBody = Email.responseArray[1];
                                         Email.oMail.HtmlBody = Email.responseArray[0];
 
-                                        try
-                                        {
-                                            SmtpClient oSmtp = new SmtpClient();
-                                            //await oSmtp.SendMailAsync(Email.oServer, Email.oMail);
+                                        Console.WriteLine("Emailed -> " + Email.EmailAddress + " ResponseCode -> " + Email.ResponseCode + " Subjectline -> " + Email.SubjectLine);
 
-                                            using (IDbConnection db = new SqlConnection(connectionString))
-                                            {
-                                                await db.ExecuteSqlAsync(
-                                                    "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
-                                                    new
-                                                    {
-                                                        EmailBatch_ID = Email.EmailBatch_ID,
-                                                        ResponseCode = Email.ResponseCode,
-                                                        EmailAddress = Email.EmailAddress.ToLower(),
-                                                        MessageID = Email.oMail.MessageID,
-                                                        MessageStatus_ID = 1
-                                                    });
-                                            }
-                                        }
+                                        //try
+                                        //{
+                                        //    SmtpClient oSmtp = new SmtpClient();
+                                        //    //await oSmtp.SendMailAsync(Email.oServer, Email.oMail);
+                                        //
+                                        //    using (IDbConnection db = new SqlConnection(connectionString))
+                                        //    {
+                                        //        await db.ExecuteSqlAsync(
+                                        //            "EXEC SentMessage_Save @EmailBatch_ID, @ResponseCode, @EmailAddress, @MessageID, @MessageStatus_ID",
+                                        //            new
+                                        //            {
+                                        //                EmailBatch_ID = Email.EmailBatch_ID,
+                                        //                ResponseCode = Email.ResponseCode,
+                                        //                EmailAddress = Email.EmailAddress.ToLower(),
+                                        //                MessageID = Email.oMail.MessageID,
+                                        //                MessageStatus_ID = 1
+                                        //            });
+                                        //    }
+                                        //}
 
-                                        catch (Exception e)
-                                        {
-                                            Console.WriteLine("Error: " + e.Message);
-                                            Console.WriteLine("Outbound: " + Email.OutboundDomainName);
-                                            Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
-
-
-                                        }
+                                        //catch (Exception e)
+                                        //{
+                                        //    Console.WriteLine("Error: " + e.Message);
+                                        //    Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                                        //    Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+                                        //
+                                        //
+                                        //}
                                     }
                                 }
                             });
