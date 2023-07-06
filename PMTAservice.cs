@@ -128,9 +128,7 @@ namespace EmailEngineTesting
                                     using (IDbConnection BatchStatus = new SqlConnection(connectionString))
                                     {
                                         BatchStatus.Execute("WeeklyEmailBatchEnd_Save",
-                                            new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 1 },
-                                            commandType: CommandType.StoredProcedure
-                                        );
+                                            new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 1 });
 
                                         CurrentEmailBatchID = BatchStatus.Query<int>("WeeklyEmailBatches_GetNext",
                                             new { DropDate, Realtime, EmailServiceProvider_ID, Processor_ID = 1 },
@@ -314,8 +312,7 @@ namespace EmailEngineTesting
                         using (IDbConnection BatchStatus = new SqlConnection("DataCenterEmailEngine"))
                         {
                             BatchStatus.Execute("WeeklyEmailBatchEnd_Save", 
-                                new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 1 }, 
-                                commandType: CommandType.StoredProcedure);
+                                new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 1 });
                         }
                     }
 
