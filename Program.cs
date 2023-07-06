@@ -31,7 +31,7 @@ namespace EmailEngineTesting
             //switch (Service)
             //{
             //    case 1:
-            //        PMTAservice.sendPMTA(EmailServiceProvider_ID, DropDate, false).GetAwaiter().GetResult();
+            //        PMTAservice.SendPMTAAsync(EmailServiceProvider_ID, DropDate, false).GetAwaiter().GetResult();
             //        break;
             //    case 2:
             //        MailGunService.SendMailgunAsync(EmailServiceProvider_ID, DropDate).GetAwaiter().GetResult();
@@ -40,7 +40,7 @@ namespace EmailEngineTesting
             //    //    SendGridService.sendSendGrid(EmailServiceProvider_ID, DropDate);
             //    //    break;
             //    case 4:
-            //        PMTAservice.sendPMTA(EmailServiceProvider_ID, DropDate, true).GetAwaiter().GetResult();
+            //        PMTAservice.SendPMTAAsync(EmailServiceProvider_ID, DropDate, true).GetAwaiter().GetResult();
             //        break;
             //    //case 5:
             //    //    SendInBlueService.sendSendInBlue(EmailServiceProvider_ID, DropDate);
@@ -51,7 +51,7 @@ namespace EmailEngineTesting
             //}
             int EmailServiceProvider_ID = 7;
             DateTime Testtime = DateTime.Now;
-            PMTAservice.sendPMTA(EmailServiceProvider_ID, Testtime, false).GetAwaiter().GetResult();
+            PMTAservice.SendPMTAAsync(EmailServiceProvider_ID, Testtime, false).GetAwaiter().GetResult();
             //MailGunService.SendMailgunAsync(EmailServiceProvider_ID, Testtime).GetAwaiter().GetResult();
         }
 
