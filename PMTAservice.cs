@@ -116,25 +116,23 @@ namespace EmailEngineTesting
 
                         if (DropIndex >= TheDrop.Count())
                         {
-                            using (IDbConnection BatchStatus = new SqlConnection(DataCenterEmailEngine))
-                            {
-                                BatchStatus.Execute("WeeklyEmailBatchEnd_Save", new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 1 });
+                            using IDbConnection BatchStatus = new SqlConnection(DataCenterEmailEngine);
+                            BatchStatus.Execute("WeeklyEmailBatchEnd_Save", new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 1 });
 
-                                CurrentEmailBatchID = BatchStatus.Query<int>("WeeklyEmailBatches_GetNext",
-                                    new { DropDate, Realtime, EmailServiceProvider_ID, Processor_ID = 1 }, commandTimeout: 180).Single();
+                            CurrentEmailBatchID = BatchStatus.Query<int>("WeeklyEmailBatches_GetNext",
+                                new { DropDate, Realtime, EmailServiceProvider_ID, Processor_ID = 1 }, commandTimeout: 180).Single();
 
-                                if (CurrentEmailBatchID == 0) return;
+                            if (CurrentEmailBatchID == 0) return;
 
-                                Console.WriteLine("Batch: " + CurrentEmailBatchID.ToString());
+                            Console.WriteLine("Batch: " + CurrentEmailBatchID.ToString());
 
-                                TheDrop = BatchStatus.Query<RecipientModel>("WeeklyEmailBatchRecipients_GetV3",
-                                    new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID, Realtime }, commandTimeout: 180).ToList();
+                            TheDrop = BatchStatus.Query<RecipientModel>("WeeklyEmailBatchRecipients_GetV3",
+                                new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID, Realtime }, commandTimeout: 180).ToList();
 
-                                Console.WriteLine("Drop Count: " + TheDrop.Count().ToString());
+                            Console.WriteLine("Drop Count: " + TheDrop.Count().ToString());
 
-                                DropIndex = 0;
-                                if (!TheDrop.Any()) return;
-                            }
+                            DropIndex = 0;
+                            if (!TheDrop.Any()) return;
                         }
                         RecipientModel recipient = TheDrop.ElementAt(DropIndex);
                         string result = recipient.result.ToLower();
