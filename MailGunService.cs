@@ -81,24 +81,28 @@ namespace EmailEngineTesting
 
             using (IDbConnection EmailDrop = new SqlConnection(connectionString))
             {
-                CurrentEmailBatchID = await EmailDrop.SingleSqlAsync<int>(
-                    "EXEC EmailBatches_GetNextV2 @DropDate ,  @Realtime,  @EmailServiceProvider_ID,  @Processor_ID",
-                    new { DropDate = DropDate, Realtime = 0, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 });
+                CurrentEmailBatchID = await EmailDrop.ExecuteScalarAsync<int>(
+                    "EmailBatches_GetNextV2",
+                    new { DropDate = DropDate, Realtime = 0, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 },
+                    commandType: CommandType.StoredProcedure);
 
-                WeekCount = await EmailDrop.SingleSqlAsync<int>(
-                    "EXEC WeeklyEmailBatchRecipients_GetMailgunCount @EmailServiceProvider_ID, @DropDate",
-                    new { EmailServiceProvider_ID, DropDate });
+                WeekCount = await EmailDrop.ExecuteScalarAsync<int>(
+                    "WeeklyEmailBatchRecipients_GetMailgunCount",
+                    new { EmailServiceProvider_ID, DropDate },
+                    commandType: CommandType.StoredProcedure);
 
 
-                IEnumerable<RecipientModel> TheDrop = await EmailDrop.QuerySqlAsync<RecipientModel>(
-                    "EXEC WeeklyEmailBatchRecipients_GetMailgunV2 @EmailServiceProvider_ID, @EmailBatch_ID",
-                    new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID });
+                IEnumerable<RecipientModel> TheDrop = await EmailDrop.QueryAsync<RecipientModel>(
+                    "WeeklyEmailBatchRecipients_GetMailgunV2",
+                    new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID }, 
+                    commandType: CommandType.StoredProcedure);
 
                 using (IDbConnection EmailEngineSettings = new SqlConnection(connectionString))
                 {
-                    ES = await EmailEngineSettings.QuerySqlAsync<EngineSettings>(
-                        "EXEC WeeklyEmailEngineSettings_GetMailgunReserved @EmailServiceProvider_ID",
-                        new { EmailServiceProvider_ID });
+                    ES = await EmailEngineSettings.QueryAsync<EngineSettings>(
+                        "WeeklyEmailEngineSettings_GetMailgunReserved",
+                        new { EmailServiceProvider_ID }, 
+                        commandType: CommandType.StoredProcedure);
 
                     if (ES.Count() > 0 && CurrentEmailBatchID > 0)
                     {
@@ -123,17 +127,17 @@ namespace EmailEngineTesting
                                 {
                                     using(IDbConnection BatchStatus = new SqlConnection(connectionString)) 
                                     {
-                                        BatchStatus.ExecuteSql(
-                                            "EXEC WeeklyEmailBatchEnd_Save @EmailBatch_ID, @EmailServiceProvider_ID, @Processor_ID",
-                                            new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 });
+                                        BatchStatus.Execute("WeeklyEmailBatchEnd_Save",
+                                            new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 }, 
+                                            commandType: CommandType.StoredProcedure);
                                 
-                                        CurrentEmailBatchID = BatchStatus.QuerySql<int>(
-                                                "EXEC EmailBatches_GetNextV2 @DropDate, @Realtime, @EmailServiceProvider_ID, @Processor_ID",
-                                               new { DropDate = DropDate, Realtime = 0, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 }).Single();
+                                        CurrentEmailBatchID = BatchStatus.Query<int>("EmailBatches_GetNextV2",
+                                            new { DropDate = DropDate, Realtime = 0, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 },
+                                            commandType: CommandType.StoredProcedure).Single();
                                 
-                                        TheDrop = BatchStatus.QuerySql<RecipientModel>(
-                                                    "EXEC WeeklyEmailBatchRecipients_GetMailgunV2 @EmailServiceProvider_ID, @EmailBatch_ID",
-                                                    new { EmailServiceProvider_ID = EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID }).ToList();
+                                        TheDrop = BatchStatus.Query<RecipientModel>("WeeklyEmailBatchRecipients_GetMailgunV2",
+                                            new { EmailServiceProvider_ID = EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID },
+                                            commandType: CommandType.StoredProcedure).ToList();
                                 
                                         Console.WriteLine("Email Servers: " + ES.Count().ToString());
                                         Console.WriteLine("Drop Count: " + TheDrop.Count().ToString());
@@ -280,11 +284,9 @@ namespace EmailEngineTesting
                         }
                         using (IDbConnection BatchStatus = new SqlConnection(connectionString))
                         {
-                            //check this call as well
-                            BatchStatus.ExecuteSql(
-                                "EXEC WeeklyEmailBatchStartEndPartial_Save, @EmailServiceProvider_ID, @Processor_ID",
+                            BatchStatus.Execute("WeeklyEmailBatchStartEndPartial_Save",
                                 new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID = EmailServiceProvider_ID, Processor_ID = 2 },
-                                commandTimeout: 180);
+                                commandType: CommandType.StoredProcedure);
                         }
                     }
                 }
