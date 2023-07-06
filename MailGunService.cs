@@ -77,9 +77,9 @@ namespace EmailEngineTesting
             int CurrentEmailBatchID = 0;
             decimal WeekCount = 0;
             DateTime AppStartTimestamp = DateTime.Now;
-            string connectionString = ConfigurationManager.ConnectionStrings["DataCenterEmailEngine"].ConnectionString;
+            string DataCenterEmailEngine = ConfigurationManager.ConnectionStrings["DataCenterEmailEngine"].ConnectionString;
 
-            using IDbConnection EmailDrop = new SqlConnection(connectionString);
+            using IDbConnection EmailDrop = new SqlConnection(DataCenterEmailEngine);
             CurrentEmailBatchID = await EmailDrop.ExecuteScalarAsync<int>( "EmailBatches_GetNextV2", new { DropDate, Realtime = 0, EmailServiceProvider_ID, Processor_ID = 2 }, commandTimeout: 180);
 
             WeekCount = await EmailDrop.ExecuteScalarAsync<int>( "WeeklyEmailBatchRecipients_GetMailgunCount", new { EmailServiceProvider_ID, DropDate }, commandTimeout: 180);
@@ -87,7 +87,7 @@ namespace EmailEngineTesting
             IEnumerable<RecipientModel> TheDrop = await EmailDrop.QueryAsync<RecipientModel>( "WeeklyEmailBatchRecipients_GetMailgunV2", 
                 new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID }, commandTimeout: 180);
 
-            using IDbConnection EmailEngineSettings = new SqlConnection(connectionString);
+            using IDbConnection EmailEngineSettings = new SqlConnection(DataCenterEmailEngine);
 
             ES = await EmailEngineSettings.QueryAsync<EngineSettings>( "WeeklyEmailEngineSettings_GetMailgunReserved", new { EmailServiceProvider_ID }, commandTimeout: 180);
 
@@ -111,7 +111,7 @@ namespace EmailEngineTesting
                     {
                         if (DropIndex >= TheDrop.Count())
                         {
-                            using IDbConnection BatchStatus = new SqlConnection(connectionString);
+                            using IDbConnection BatchStatus = new SqlConnection(DataCenterEmailEngine);
                             BatchStatus.Execute("WeeklyEmailBatchEnd_Save",
                                 new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 2 });
 
@@ -259,7 +259,7 @@ namespace EmailEngineTesting
                     int Interval = (int)(IntervalDelta * 1000.00);
                     if (Interval > 0) await Task.Delay(Interval);
                 }
-                using (IDbConnection BatchStatus = new SqlConnection(connectionString))
+                using (IDbConnection BatchStatus = new SqlConnection(DataCenterEmailEngine))
                 {
                     BatchStatus.Execute("WeeklyEmailBatchStartEndPartial_Save", new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 2 });
                 }
