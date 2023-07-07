@@ -80,7 +80,8 @@ namespace EmailEngineTesting
             string DataCenterEmailEngine = ConfigurationManager.ConnectionStrings["DataCenterEmailEngine"].ConnectionString;
 
             using IDbConnection EmailDrop = new SqlConnection(DataCenterEmailEngine);
-            CurrentEmailBatchID = await EmailDrop.ExecuteScalarAsync<int>( "EmailBatches_GetNextV2", new { DropDate, Realtime = 0, EmailServiceProvider_ID, Processor_ID = 2 }, commandTimeout: 180);
+            CurrentEmailBatchID = await EmailDrop.ExecuteScalarAsync<int>("EmailBatches_GetNextV2", 
+                new { DropDate, Realtime = 0, EmailServiceProvider_ID, Processor_ID = 2 }, commandTimeout: 180);
 
             WeekCount = await EmailDrop.ExecuteScalarAsync<int>( "WeeklyEmailBatchRecipients_GetMailgunCount", new { EmailServiceProvider_ID, DropDate }, commandTimeout: 180);
 
@@ -183,7 +184,8 @@ namespace EmailEngineTesting
                         using WebClient wclient = new();
                         try
                         {
-                            Email.PURLresponse = await wclient.DownloadStringTaskAsync(Email.PURL);
+                            //Email.PURLresponse = await wclient.DownloadStringTaskAsync(Email.PURL);
+                            Email.PURLresponse = wclient.DownloadString(Email.PURL);
                         }
                         catch (Exception ex)
                         {
@@ -240,9 +242,9 @@ namespace EmailEngineTesting
                         }
                     }).ToList();
                     await Task.WhenAll(SendEmailTasks);
-
                     SendCycle++;
                     int currentESCount = ES.Count();
+
                     ES = ES.Where(x => x.HourlyEmailLimit > SendCycle);
 
                     if (ES.Count() != currentESCount)

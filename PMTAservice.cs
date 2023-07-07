@@ -20,7 +20,6 @@ namespace EmailEngineTesting
     {
         public class EmailProcessorModel
         {
-
             public SmtpMail oMail { get; set; }
             public SmtpServer oServer { get; set; }
             public string PURLresponse { get; set; }
@@ -84,7 +83,6 @@ namespace EmailEngineTesting
 
             WeekCount = await EmailDrop.ExecuteScalarAsync<int>("WeeklyEmailBatchRecipients_GetCountV2", new { EmailServiceProvider_ID, Realtime }, commandTimeout: 180);
 
-
             IEnumerable<RecipientModel> TheDrop = await EmailDrop.QueryAsync<RecipientModel>("WeeklyEmailBatchRecipients_GetV3",
                 new { EmailServiceProvider_ID, EmailBatch_ID = CurrentEmailBatchID, Realtime }, commandTimeout: 180);
 
@@ -113,7 +111,6 @@ namespace EmailEngineTesting
 
                     foreach (EngineSettings EngineSetting in ES)
                     {
-
                         if (DropIndex >= TheDrop.Count())
                         {
                             using IDbConnection BatchStatus = new SqlConnection(DataCenterEmailEngine);
@@ -138,7 +135,6 @@ namespace EmailEngineTesting
                         string result = recipient.result.ToLower();
                         if (result == "valid" || result == "neutral")
                         {
-
                             string bidenc = CommonUtilities.StandardEncryptText(recipient.EmailBatch_ID + "//" + recipient.EmailAddress);
                             string UnSub = recipient.Unsubscribe.Replace("##promocode##", recipient.PromoCode).Replace("##responsecode##", recipient.ResponseCode).Replace("##emailaddress##", recipient.EmailAddress);
                             string Google = "|value1|:|value2|:|value3|:|value4|".Replace("|value1|", recipient.EmailBatch_ID.ToString()).Replace("|value2|", recipient.ResponseCode).Replace("|value3|", DateTime.Now.ToString("MM/dd/yyyy")).Replace("|value4|", "Dlinks");
@@ -180,7 +176,6 @@ namespace EmailEngineTesting
                         try
                         {
                             Email.PURLresponse = wclient.DownloadString(Email.PURL);
-
                         }
                         catch (Exception ex)
                         {
@@ -255,6 +250,7 @@ namespace EmailEngineTesting
                             Console.WriteLine($"Email Servers: {ES.Count()}");
                         }
                     }
+
                     if (AppStartTimestamp.AddHours(24) < DateTime.Now)
                     {
                         AppStartTimestamp = DateTime.Now;
