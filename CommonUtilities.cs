@@ -246,17 +246,17 @@ namespace Scoredlist.NET.Utilities
             else
                 return 0;
         }
-        public static Location GetLocation(string ipAddress)
-        {
-            string connectionString = ConfigurationManager.ConnectionStrings["ScoredListConnectionString"].ConnectionString;
-            using (IDbConnection connection = new SqlConnection(connectionString))
-            {
-                return connection.QuerySql<Location>(
-                    "EXEC IPGeolocation_Get @IPInteger",
-                    new { IPInteger = ConvertIPToLong(ipAddress) }
-                ).FirstOrDefault();
-            }
-        }
+        //public static location getlocation(string ipaddress)
+        //{
+        //    string connectionstring = configurationmanager.connectionstrings["scoredlistconnectionstring"].connectionstring;
+        //    using (idbconnection connection = new sqlconnection(connectionstring))
+        //    {
+        //        return connection.querysql<location>(
+        //            "exec ipgeolocation_get @ipinteger",
+        //            new { ipinteger = convertiptolong(ipaddress) }
+        //        ).firstordefault();
+        //    }
+        //}
 
         public class Location
         {

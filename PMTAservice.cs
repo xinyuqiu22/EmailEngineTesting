@@ -255,7 +255,7 @@ namespace EmailEngineTesting
                     {
                         AppStartTimestamp = DateTime.Now;
                         SendCycle = 0;
-                        using IDbConnection WeeklyCountRefresh = new SqlConnection("DataCenterEmailEngine");
+                        using IDbConnection WeeklyCountRefresh = new SqlConnection(DataCenterEmailEngine);
                         WeekCount = WeeklyCountRefresh.Query<int>("WeeklyEmailBatchRecipients_GetCountV2",
                             new { EmailServiceProvider_ID, Realtime }, commandTimeout: 180).FirstOrDefault();
                         Console.WriteLine($"Weekly Count Refresh: {WeekCount}");
