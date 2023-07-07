@@ -129,7 +129,7 @@ namespace EmailEngineTesting
                             if (!TheDrop.Any()) return;
                         }
                         RecipientModel recipient = TheDrop.ElementAt((int)DropIndex);
-                        Console.WriteLine("Email -> " + recipient.EmailAddress + " Drop -> " + DropIndex);
+                        //Console.WriteLine("Email -> " + recipient.EmailAddress + " Drop -> " + DropIndex);
                         string result = recipient.result.ToLower();
                         if (result == "valid")
                         {
@@ -160,13 +160,9 @@ namespace EmailEngineTesting
                                 }
                             };
 
-                            //using WebClient wclient = new();
                             try
                             {
-                                //Email.PURLresponse = await wclient.DownloadStringTaskAsync(Email.PURL);
-                                //Email.PURLresponse = wclient.DownloadString(Email.PURL);
                                 Email.PURLresponse = await DownloadHTMLAsync(Email.PURL);
-                                //Console.WriteLine(Email.PURLresponse.ToString());
                             }
                             catch (Exception ex)
                             {
@@ -189,9 +185,7 @@ namespace EmailEngineTesting
                                 Email.request.AddParameter("html", Email.responseArray[0]);
                                 Email.request.AddParameter("text", Email.responseArray[1]);
                             }
-                            Console.WriteLine("Emailed -> " + Email.EmailAddress + " ResponseCode -> " + Email.ResponseCode);
-                            //build email body call out where email body at build it and put it in the list of object that is being build in the for loop
-                            // do it in parallel
+                            //Console.WriteLine("Emailed -> " + Email.EmailAddress + " ResponseCode -> " + Email.ResponseCode);
 
                             string SubjectLine = recipient.SubjectLine.Replace("##firstname##", CommonUtilities.Capitalize(recipient.FirstName))
                               .Replace("##emailaddress##", recipient.EmailAddress)
@@ -257,7 +251,6 @@ namespace EmailEngineTesting
                                     ES = ES.Where(x => x.OutboundDomainName != Email.OutboundDomainName);
                                     Console.WriteLine("Email Servers: " + ES.Count());
                                 }
-                    
                             }
                             catch (Exception e)
                             {
