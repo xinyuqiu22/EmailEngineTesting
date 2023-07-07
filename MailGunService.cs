@@ -128,7 +128,7 @@ namespace EmailEngineTesting
                             DropIndex = 0;
                             if (!TheDrop.Any()) return;
                         }
-                        RecipientModel recipient = TheDrop.ElementAt((int)DropIndex);
+                        RecipientModel recipient = TheDrop.ElementAt(DropIndex);
                         //Console.WriteLine("Email -> " + recipient.EmailAddress + " Drop -> " + DropIndex);
                         string result = recipient.result.ToLower();
                         if (result == "valid")
