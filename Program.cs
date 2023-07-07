@@ -51,8 +51,8 @@ namespace EmailEngineTesting
             //}
             int EmailServiceProvider_ID = 7;
             DateTime Testtime = DateTime.Now;
-            //PMTAservice.SendPMTAAsync(EmailServiceProvider_ID, Testtime, false).GetAwaiter().GetResult();
-            MailGunService.SendMailgunAsync(EmailServiceProvider_ID, Testtime).GetAwaiter().GetResult();
+            PMTAservice.SendPMTAAsync(EmailServiceProvider_ID, Testtime, false).GetAwaiter().GetResult();
+            //MailGunService.SendMailgunAsync(EmailServiceProvider_ID, Testtime).GetAwaiter().GetResult();
         }
 
         
