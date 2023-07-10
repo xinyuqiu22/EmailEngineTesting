@@ -109,7 +109,8 @@ namespace EmailEngineTesting
                     DateTime StartTime = DateTime.Now;
                     IEnumerable<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
 
-                    var tasks = ES.Select(async (EngineSetting, DropIndex) =>
+                    //var tasks = ES.Select(async (EngineSetting, DropIndex) =>
+                    foreach (var EngineSetting in ES)
                     {
                         if (DropIndex >= TheDrop.Count())
                         {
@@ -166,38 +167,70 @@ namespace EmailEngineTesting
                             };
                             Email.oMail.Headers.Add("List-Unsubscribe", $" <{UnSub}>");
 
-                            try
-                            {
-                                Email.PURLresponse = await DownloadHTMLAsync(Email.PURL);
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine("URL Failed");
-                                Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
-                                Console.WriteLine("PURL: " + Email.PURL);
-                                Console.WriteLine("Outbound: " + Email.OutboundDomainName);
-                                Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
-                                Console.WriteLine("Error: " + ex.Message);
-                                Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
-
-                                Email.PURLresponse = "";
-                            }
-
-                            Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
-                            if (Email.responseArray.Length ==  2)
-                            {
-                                Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
-                                Email.oMail.TextBody = Email.responseArray[1];
-                                Email.oMail.HtmlBody = Email.responseArray[0];
-                            }
-                            Console.WriteLine("Email: " + Email.EmailAddress +" Email Response: " + Email.ResponseCode);
+                            //try
+                            //{
+                            //    Email.PURLresponse = await DownloadHTMLAsync(Email.PURL);
+                            //}
+                            //catch (Exception ex)
+                            //{
+                            //    Console.WriteLine("URL Failed");
+                            //    Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
+                            //    Console.WriteLine("PURL: " + Email.PURL);
+                            //    Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                            //    Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
+                            //    Console.WriteLine("Error: " + ex.Message);
+                            //    Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+                            //
+                            //    Email.PURLresponse = "";
+                            //}
+                            //
+                            //Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
+                            //if (Email.responseArray.Length ==  2)
+                            //{
+                            //    Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                            //    Email.oMail.TextBody = Email.responseArray[1];
+                            //    Email.oMail.HtmlBody = Email.responseArray[0];
+                            //}
+                            //Console.WriteLine("Email: " + Email.EmailAddress +" Email Response: " + Email.ResponseCode);
                             Emails = Emails.Concat(new[] { Email });
 
                             DropIndex++;
                         }
                         else DropIndex++;
+                    }
+                    //).ToList();
+                    //await Task.WhenAll(tasks);
+
+                    var WebsiteCallTasks = Emails.Select(async (Email) =>
+                    {
+                        try
+                        {
+                            Email.PURLresponse = await DownloadHTMLAsync(Email.PURL);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("URL Failed");
+                            Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
+                            Console.WriteLine("PURL: " + Email.PURL);
+                            Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                            Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
+                            Console.WriteLine("Error: " + ex.Message);
+                            Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+
+                            Email.PURLresponse = "";
+                        }
+
+                        Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
+
+                        if (Email.responseArray.Length == 2)
+                        {
+                            Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                            Email.oMail.TextBody = Email.responseArray[1];
+                            Email.oMail.HtmlBody = Email.responseArray[0];
+                        }
+                        Console.WriteLine("Emailed -> " + Email.EmailAddress + " ResponseCode -> " + Email.ResponseCode + " Subjectline -> " + Email.SubjectLine);
                     }).ToList();
-                    await Task.WhenAll(tasks);
+                    await Task.WhenAll(WebsiteCallTasks);
 
                     SendCycle++;
 
