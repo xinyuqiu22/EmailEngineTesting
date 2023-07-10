@@ -1,18 +1,11 @@
 ﻿using Microsoft.Data.SqlClient;
-using System;
-using System.Linq;
 using System.Configuration;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Scoredlist.NET.Utilities;
 using System.Data;
 using Insight.Database;
 using RestSharp;
 using RestSharp.Authenticators;
-using SmtpClient = EASendMail.SmtpClient;
-using System.Net;
 using Newtonsoft.Json;
-using System.Collections.Concurrent;
 
 namespace EmailEngineTesting
 {
@@ -109,7 +102,8 @@ namespace EmailEngineTesting
                     DateTime Starttime = DateTime.Now;
                     IEnumerable<EmailProcessorModel> Emails = new List<EmailProcessorModel>();
 
-                    var tasks = ES.Select(async (EngineSetting, DropIndex) =>
+                    //var tasks = ES.Select(async (EngineSetting, DropIndex) =>
+                    foreach (var EngineSetting in ES)
                     {
                         if (DropIndex >= TheDrop.Count())
                         {
@@ -129,7 +123,7 @@ namespace EmailEngineTesting
                             if (!TheDrop.Any()) return;
                         }
                         RecipientModel recipient = TheDrop.ElementAt(DropIndex);
-                        //Console.WriteLine("Email -> " + recipient.EmailAddress + " Drop -> " + DropIndex);
+                        Console.WriteLine("Email -> " + recipient.EmailAddress + " Drop -> " + DropIndex);
                         string result = recipient.result.ToLower();
                         if (result == "valid")
                         {
@@ -160,31 +154,31 @@ namespace EmailEngineTesting
                                 }
                             };
 
-                            try
-                            {
-                                Email.PURLresponse = await DownloadHTMLAsync(Email.PURL);
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine("URL Failed");
-                                Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
-                                Console.WriteLine("PURL: " + Email.PURL);
-                                Console.WriteLine("Outbound: " + Email.OutboundDomainName);
-                                Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
-                                Console.WriteLine("Error: " + ex.Message);
-                                Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+                            //try
+                            //{
+                            //    Email.PURLresponse = await DownloadHTMLAsync(Email.PURL);
+                            //}
+                            //catch (Exception ex)
+                            //{
+                            //    Console.WriteLine("URL Failed");
+                            //    Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
+                            //    Console.WriteLine("PURL: " + Email.PURL);
+                            //    Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                            //    Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
+                            //    Console.WriteLine("Error: " + ex.Message);
+                            //    Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
 
-                                Email.PURLresponse = "";
-                            }
+                            //    Email.PURLresponse = "";
+                            //}
 
-                            Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
+                            //Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
 
-                            if (Email.responseArray.Length == 2)
-                            {
-                                Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
-                                Email.request.AddParameter("html", Email.responseArray[0]);
-                                Email.request.AddParameter("text", Email.responseArray[1]);
-                            }
+                            //if (Email.responseArray.Length == 2)
+                            //{
+                            //    Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                            //    Email.request.AddParameter("html", Email.responseArray[0]);
+                            //    Email.request.AddParameter("text", Email.responseArray[1]);
+                            //}
                             //Console.WriteLine("Emailed -> " + Email.EmailAddress + " ResponseCode -> " + Email.ResponseCode);
 
                             string SubjectLine = recipient.SubjectLine.Replace("##firstname##", CommonUtilities.Capitalize(recipient.FirstName))
@@ -206,8 +200,40 @@ namespace EmailEngineTesting
                             Emails = Emails.Concat(new[] { Email });
                             DropIndex++;
                         }
+                    }
+                    //).ToList();
+                    //await Task.WhenAll(tasks);
+
+                    var WebsiteCallTasks = Emails.Select(async (Email) =>
+                    {
+                        try
+                        {
+                            Email.PURLresponse = await DownloadHTMLAsync(Email.PURL);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("URL Failed");
+                            Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
+                            Console.WriteLine("PURL: " + Email.PURL);
+                            Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                            Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
+                            Console.WriteLine("Error: " + ex.Message);
+                            Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+
+                            Email.PURLresponse = "";
+                        }
+
+                        Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
+
+                        if (Email.responseArray.Length == 2)
+                        {
+                            Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                            Email.request.AddParameter("html", Email.responseArray[0]);
+                            Email.request.AddParameter("text", Email.responseArray[1]);
+                        }
+                        Console.WriteLine("Emailed -> " + Email.EmailAddress + " ResponseCode -> " + Email.ResponseCode + " Subjectline -> " + Email.SubjectLine);
                     }).ToList();
-                    await Task.WhenAll(tasks);
+                    await Task.WhenAll(WebsiteCallTasks);
 
                     SendCycle++;
                     int currentESCount = ES.Count();
@@ -230,11 +256,33 @@ namespace EmailEngineTesting
 
                     var SendEmailTasks = Emails.Select(async (Email) =>
                     {
+                        //try
+                        //{
+                        //    Email.PURLresponse = await DownloadHTMLAsync(Email.PURL);
+                        //}
+                        //catch (Exception ex)
+                        //{
+                        //    Console.WriteLine("URL Failed");
+                        //    Console.WriteLine("Batch ID: " + Email.EmailBatch_ID);
+                        //    Console.WriteLine("PURL: " + Email.PURL);
+                        //    Console.WriteLine("Outbound: " + Email.OutboundDomainName);
+                        //    Console.WriteLine("Recipient: " + Email.EmailAddress.ToLower());
+                        //    Console.WriteLine("Error: " + ex.Message);
+                        //    Console.WriteLine("Time: " + DateTime.Now.ToLongTimeString());
+
+                        //    Email.PURLresponse = "";
+                        //}
+
+                        //Email.responseArray = Email.PURLresponse.Split(new string[] { "###HTML-Text###" }, StringSplitOptions.None);
+
                         if (Email.responseArray.Length == 2)
                         {
+                            //Email.responseArray[0] = Email.responseArray[0].Replace("</body>", "<img src='https://www.offersdirect.com/image/ODCopyright/Copyright_##responsecode##_##emailbatch##' /></body>".Replace("##responsecode##", Email.ResponseCode).Replace("##emailbatch##", Email.EmailBatch_ID.ToString()));
+                            //Email.request.AddParameter("html", Email.responseArray[0]);
+                            //Email.request.AddParameter("text", Email.responseArray[1]);
                             try
                             {
-                                Console.WriteLine("Emailed -> " + Email.EmailAddress + " ResponseCode -> " + Email.ResponseCode + " Subjectline -> " + Email.SubjectLine);
+                                //Console.WriteLine("Emailed -> " + Email.EmailAddress + " ResponseCode -> " + Email.ResponseCode + " Subjectline -> " + Email.SubjectLine);
                                 RestResponse resp = await Email.client.ExecuteAsync(Email.request);
                                 if (resp.IsSuccessful)
                                 {
@@ -262,6 +310,7 @@ namespace EmailEngineTesting
                     }).ToList();
                     await Task.WhenAll(SendEmailTasks);
                 }
+
                 using IDbConnection batchStatus = new SqlConnection(DataCenterEmailEngine);
                 batchStatus.Execute("WeeklyEmailBatchStartEndPartial_Save", new { EmailBatch_ID = CurrentEmailBatchID, EmailServiceProvider_ID, Processor_ID = 2 });
             }
